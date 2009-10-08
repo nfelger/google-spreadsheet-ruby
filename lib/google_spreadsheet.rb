@@ -468,6 +468,14 @@ module GoogleSpreadsheet
           reload() if !@cells
           return @input_values[[row, col]] || ""
         end
+
+        # Returns the numeric value of the cell. Top-left cell is [1, 1].
+        #
+        # If user input "0.1" to cell [1, 3], worksheet[1, 3] is "R$ 1,23" for example.
+        def numeric_value(row, col)
+          reload() if !@cells
+          return @numeric_values[[row, col]] || ""
+        end
         
         # Row number of the bottom-most non-empty row.
         def num_rows
@@ -546,12 +554,14 @@ module GoogleSpreadsheet
           
           @cells = {}
           @input_values = {}
+          @numeric_values = {}
           for entry in doc.search("entry")
             cell = entry.search("gs:cell")[0]
             row = cell["row"].to_i()
             col = cell["col"].to_i()
             @cells[[row, col]] = as_utf8(cell.inner_text)
             @input_values[[row, col]] = as_utf8(cell["inputValue"])
+            @numeric_values[[row, col]] = cell["numericValue"].to_f if cell["numericValue"]
           end
           @modified.clear()
           @meta_modified = false
