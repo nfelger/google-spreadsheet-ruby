@@ -6,8 +6,11 @@ require "net/https"
 require "open-uri"
 require "cgi"
 require "rubygems"
-require "hpricot"
+require "nokogiri"
+#require "hpricot"
+
 Net::HTTP.version_1_2
+Nokogiri::XML::Node::Encoding = "UTF8"
 
 
 if RUBY_VERSION < "1.9.0"
@@ -177,26 +180,26 @@ module GoogleSpreadsheet
               raise(ex.message =~ /^401/ ? AuthenticationError : GoogleSpreadsheet::Error,
                 "Error #{ex.message} for GET #{url}: " + ex.io.read())
             end
-            return Hpricot.XML(response)
+            return Nokogiri.XML(response)
           end
         end
         
         def post(url, data) #:nodoc:
           header = self.http_header.merge({"Content-Type" => "application/atom+xml"})
           response = http_request(:post, url, data, header)
-          return Hpricot.XML(response)
+          return Nokogiri.XML(response)
         end
         
         def put(url, data) #:nodoc:
           header = self.http_header.merge({"Content-Type" => "application/atom+xml"})
           response = http_request(:put, url, data, header)
-          return Hpricot.XML(response)
+          return Nokogiri.XML(response)
         end
         
         def delete(url) #:nodoc:
           header = self.http_header.merge({"Content-Type" => "application/atom+xml"})
           response = http_request(:delete, url, nil, header)
-          return Hpricot.XML(response)
+          return Nokogiri.XML(response)
         end
         
         def http_header #:nodoc:
@@ -548,15 +551,14 @@ module GoogleSpreadsheet
         # Note that changes you made by []= is discarded if you haven't called save().
         def reload()
           doc = @session.get(@cells_feed_url)
-          @max_rows = doc.search("gs:rowCount").text.to_i()
-          @max_cols = doc.search("gs:colCount").text.to_i()
-          @title = as_utf8(doc.search("title").text)
+          @max_rows = doc.search("//gs:rowCount")[0].text.to_i()
+          @max_cols = doc.search("//gs:colCount")[0].text.to_i()
+          @title = as_utf8(doc.search("title")[0].text)
           
           @cells = {}
           @input_values = {}
           @numeric_values = {}
-          for entry in doc.search("entry")
-            cell = entry.search("gs:cell")[0]
+          for cell in doc.search("//gs:cell")
             row = cell["row"].to_i()
             col = cell["col"].to_i()
             @cells[[row, col]] = as_utf8(cell.inner_text)
@@ -584,7 +586,7 @@ module GoogleSpreadsheet
                 <gs:colCount>#{h(self.max_cols)}</gs:colCount>
               </entry>
             EOS
-            
+       
             @session.put(edit_url, xml)
             
             @meta_modified = false
@@ -602,10 +604,10 @@ module GoogleSpreadsheet
             url = "#{@cells_feed_url}?return-empty=true&min-row=#{rows.min}&max-row=#{rows.max}" +
               "&min-col=#{cols.min}&max-col=#{cols.max}"
             doc = @session.get(url)
-            for entry in doc.search("entry")
-              row = entry.search("gs:cell")[0]["row"].to_i()
-              col = entry.search("gs:cell")[0]["col"].to_i()
-              cell_entries[[row, col]] = entry
+            for cell in doc.search("//gs:cell")
+              row = cell["row"].to_i()
+              col = cell["col"].to_i()
+              cell_entries[[row, col]] = cell.parent
             end
             
             # Updates cell values using batch operation.
