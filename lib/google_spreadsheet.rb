@@ -104,6 +104,19 @@ module GoogleSpreadsheet
         def as_utf8(str)
           str.force_encoding("UTF-8")
         end
+
+        # Converts a string that indicates a cell in its possiton.
+        # Ex: A1 => [1,1]; B1 => [1,2]; => z32 => [32,26]
+        def string_to_possition(string)
+          rx = string.upcase.match(/([A-Z]+)(\d+)/)
+          letter, number = rx[1..2]
+          
+          row = number.to_i
+          col = 0
+          letter.each_byte { |b| col *= 26; col += b-64 }
+
+          return [row, col]
+        end
         
     end
     
@@ -381,9 +394,10 @@ module GoogleSpreadsheet
     
     # Use GoogleSpreadsheet::Table#records to get GoogleSpreadsheet::Record objects.
     class Record < Hash
-        def initialize(session, entry) #:nodoc:
-          self.extend GoogleSpreadsheet::Util
 
+        include(Util)
+
+        def initialize(session, entry) #:nodoc:
           @session = session
           for field in entry.children.collect.delete_if { |x| x.name != "field" }
             self[as_utf8(field["name"])] = as_utf8(field.inner_text)
@@ -443,7 +457,13 @@ module GoogleSpreadsheet
         end
         
         # Returns content of the cell as String. Top-left cell is [1, 1].
-        def [](row, col)
+        def [](string_or_row, col=nil)
+          if string_or_row.instance_of?(String)
+            row, col =  string_to_possition(string_or_row)
+          else
+            row = string_or_row
+          end
+
           return self.cells[[row, col]] || ""
         end
         
@@ -454,7 +474,15 @@ module GoogleSpreadsheet
         # e.g.
         #   worksheet[2, 1] = "hoge"
         #   worksheet[1, 3] = "=A1+B1"
-        def []=(row, col, value)
+        def []=(string_or_row, value_or_col=nil, value=nil)
+          if string_or_row.instance_of?(String)
+            row, col =  string_to_possition(string_or_row)
+            value = value_or_col
+          else
+            row = string_or_row
+            col = value_or_col
+          end
+
           reload() if !@cells
           @cells[[row, col]] = value
           @input_values[[row, col]] = value
@@ -467,7 +495,13 @@ module GoogleSpreadsheet
         #
         # If user input "=A1+B1" to cell [1, 3], worksheet[1, 3] is "3" for example and
         # worksheet.input_value(1, 3) is "=RC[-2]+RC[-1]".
-        def input_value(row, col)
+        def input_value(string_or_row, col=nil)
+          if string_or_row.instance_of?(String)
+            row, col =  string_to_possition(string_or_row)
+          else
+            row = string_or_row
+          end
+
           reload() if !@cells
           return @input_values[[row, col]] || ""
         end
@@ -475,7 +509,13 @@ module GoogleSpreadsheet
         # Returns the numeric value of the cell. Top-left cell is [1, 1].
         #
         # If user input "0.1" to cell [1, 3], worksheet[1, 3] is "R$ 1,23" for example.
-        def numeric_value(row, col)
+        def numeric_value(string_or_row, col=nil)
+          if string_or_row.instance_of?(String)
+            row, col =  string_to_possition(string_or_row)
+          else
+            row = string_or_row
+          end
+
           reload() if !@cells
           return @numeric_values[[row, col]] || ""
         end
