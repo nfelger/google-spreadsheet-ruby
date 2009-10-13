@@ -12,7 +12,6 @@ require "nokogiri"
 Net::HTTP.version_1_2
 Nokogiri::XML::Node::Encoding = "UTF8"
 
-
 if RUBY_VERSION < "1.9.0"
   
   class String
@@ -348,7 +347,7 @@ module GoogleSpreadsheet
 
         def initialize(session, entry) #:nodoc:
           @columns = {}
-          @worksheet_title = as_utf8(entry.search("gs:worksheet")[0]["name"])
+          @worksheet_title = as_utf8(entry.search("//gs:worksheet")[0]["name"])
           @records_url = as_utf8(entry.search("content")[0]["src"])
           @session = session
         end
@@ -382,10 +381,11 @@ module GoogleSpreadsheet
     
     # Use GoogleSpreadsheet::Table#records to get GoogleSpreadsheet::Record objects.
     class Record < Hash
-        
         def initialize(session, entry) #:nodoc:
+          self.extend GoogleSpreadsheet::Util
+
           @session = session
-          for field in entry.search("gs:field")
+          for field in entry.children.collect.delete_if { |x| x.name != "field" }
             self[as_utf8(field["name"])] = as_utf8(field.inner_text)
           end
         end
