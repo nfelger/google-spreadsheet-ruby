@@ -105,9 +105,9 @@ module GoogleSpreadsheet
           str.force_encoding("UTF-8")
         end
 
-        # Converts a string that indicates a cell in its possiton.
+        # Converts a string that indicates a cell in its position.
         # Ex: A1 => [1,1]; B1 => [1,2]; => z32 => [32,26]
-        def string_to_possition(string)
+        def string_to_position(string)
           rx = string.upcase.match(/([A-Z]+)(\d+)/)
           letter, number = rx[1..2]
           
@@ -250,7 +250,7 @@ module GoogleSpreadsheet
         
         # Returns GoogleSpreadsheet::Spreadsheet with given +url+. You must specify either of:
         # - URL of the page you open to access the spreadsheet in your browser
-        # - URL of worksheet-based feed of the spreadseet
+        # - URL of worksheet-based feed of the spreadsheet
         #
         # e.g.
         #   session.spreadsheet_by_url(
@@ -459,7 +459,7 @@ module GoogleSpreadsheet
         # Returns content of the cell as String. Top-left cell is [1, 1].
         def [](string_or_row, col=nil)
           if string_or_row.instance_of?(String)
-            row, col =  string_to_possition(string_or_row)
+            row, col =  string_to_position(string_or_row)
           else
             row = string_or_row
           end
@@ -476,7 +476,7 @@ module GoogleSpreadsheet
         #   worksheet[1, 3] = "=A1+B1"
         def []=(string_or_row, value_or_col=nil, value=nil)
           if string_or_row.instance_of?(String)
-            row, col =  string_to_possition(string_or_row)
+            row, col =  string_to_position(string_or_row)
             value = value_or_col
           else
             row = string_or_row
@@ -497,7 +497,7 @@ module GoogleSpreadsheet
         # worksheet.input_value(1, 3) is "=RC[-2]+RC[-1]".
         def input_value(string_or_row, col=nil)
           if string_or_row.instance_of?(String)
-            row, col =  string_to_possition(string_or_row)
+            row, col =  string_to_position(string_or_row)
           else
             row = string_or_row
           end
@@ -511,7 +511,7 @@ module GoogleSpreadsheet
         # If user input "0.1" to cell [1, 3], worksheet[1, 3] is "R$ 1,23" for example.
         def numeric_value(string_or_row, col=nil)
           if string_or_row.instance_of?(String)
-            row, col =  string_to_possition(string_or_row)
+            row, col =  string_to_position(string_or_row)
           else
             row = string_or_row
           end
@@ -741,7 +741,7 @@ module GoogleSpreadsheet
           return Table.new(@session, result)
         end
         
-        # Returns list of tables for the workwheet.
+        # Returns list of tables for the worksheet.
         def tables
           return self.spreadsheet.tables.select(){ |t| t.worksheet_title == self.title }
         end
